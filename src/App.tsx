@@ -4,6 +4,7 @@ import { Background } from './components/Background';
 import { NAV, Sidebar, type SectionId } from './components/Sidebar';
 import { Toasts } from './components/Toasts';
 import { useApp } from './context/AppContext';
+import { CompendiumSection } from './sections/CompendiumSection';
 import { LearningSection } from './sections/LearningSection';
 import { GrowSection } from './sections/GrowSection';
 import { MentorsSection } from './sections/MentorsSection';
@@ -59,6 +60,7 @@ export default function App() {
               <Suspense fallback={<Loader />}>
                 {section === 'grow' && <GrowSection />}
                 {section === 'learning' && <LearningSection />}
+                {section === 'compendium' && <CompendiumSection />}
                 {section === 'mentors' && <MentorsSection />}
                 {section === 'curve' && <LearningCurveSection />}
                 {section === 'settings' && <SettingsSection />}

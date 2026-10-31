@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { BookOpen, Check, Hammer, HeartHandshake, Pencil, PartyPopper, Trash2, X, type LucideIcon } from 'lucide-react';
-import { useMemo, useState } from 'react';
-import { AddEntryForm, BucketFooter } from '../components/BucketParts';
+import { useMemo, useRef, useState } from 'react';
+import { AddEntryForm, BucketFooter, useCloseOnOutsidePress } from '../components/BucketParts';
 import { useApp } from '../context/AppContext';
 import type { Bucket, Entry } from '../lib/types';
 import { cn } from '../lib/utils';
@@ -54,7 +54,8 @@ const milestone = (n: number) => {
 
 export function MentorsSection() {
   const { entries } = useApp();
-  const [open, setOpen] = useState<Set<Bucket>>(() => new Set());
+  /** Only one column is open at a time. */
+  const [openBucket, setOpenBucket] = useState<Bucket | null>(null);
   /** One edit switch for the whole section. While it is on, every entry in every bucket can be edited or deleted. */
   const [editing, setEditing] = useState(false);
 
@@ -84,16 +85,10 @@ export function MentorsSection() {
             col={col}
             index={i}
             items={entries.filter((e) => e.bucket === col.bucket)}
-            open={open.has(col.bucket)}
+            open={openBucket === col.bucket}
             editing={editing}
-            onToggle={() =>
-              setOpen((s) => {
-                const n = new Set(s);
-                if (n.has(col.bucket)) n.delete(col.bucket);
-                else n.add(col.bucket);
-                return n;
-              })
-            }
+            onToggle={() => setOpenBucket((cur) => (cur === col.bucket ? null : col.bucket))}
+            onClose={() => setOpenBucket((cur) => (cur === col.bucket ? null : cur))}
           />
         ))}
       </div>
@@ -107,6 +102,7 @@ function Column({
   open,
   editing,
   onToggle,
+  onClose,
   index,
 }: {
   col: (typeof COLUMNS)[number];
@@ -114,10 +110,13 @@ function Column({
   open: boolean;
   editing: boolean;
   onToggle: () => void;
+  onClose: () => void;
   index: number;
 }) {
   const Icon = col.icon;
   const { bulkAdd } = useApp();
+  const columnRef = useRef<HTMLElement>(null);
+  useCloseOnOutsidePress(columnRef, open, onClose);
   /** Newest first. */
   const sorted = useMemo(() => [...items].sort((a, b) => b.timestamp.localeCompare(a.timestamp)), [items]);
   const uniqueTitles = new Set(items.map((e) => e.title)).size;
@@ -130,6 +129,7 @@ function Column({
 
   return (
     <motion.section
+      ref={columnRef}
       layout
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}

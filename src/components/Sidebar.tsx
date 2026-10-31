@@ -1,12 +1,13 @@
 import { motion } from 'framer-motion';
-import { HeartHandshake, ScrollText, Settings, Sprout, TrendingUp, type LucideIcon } from 'lucide-react';
+import { HeartHandshake, Library, ScrollText, Settings, Sprout, TrendingUp, type LucideIcon } from 'lucide-react';
 import { cn } from '../lib/utils';
 
-export type SectionId = 'grow' | 'learning' | 'mentors' | 'curve' | 'settings';
+export type SectionId = 'grow' | 'learning' | 'compendium' | 'mentors' | 'curve' | 'settings';
 
 export const NAV: { id: SectionId; label: string; icon: LucideIcon }[] = [
   { id: 'grow', label: 'Grow', icon: Sprout },
   { id: 'learning', label: 'Learnings', icon: ScrollText },
+  { id: 'compendium', label: 'Compendium', icon: Library },
   { id: 'mentors', label: 'Mentors', icon: HeartHandshake },
   { id: 'curve', label: 'Learning Curve', icon: TrendingUp },
   { id: 'settings', label: 'Settings', icon: Settings },

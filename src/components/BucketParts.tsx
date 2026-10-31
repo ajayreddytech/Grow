@@ -1,7 +1,22 @@
 import { motion } from 'framer-motion';
 import { ChevronDown, Plus } from 'lucide-react';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode, type RefObject } from 'react';
 import { useApp } from '../context/AppContext';
+
+/**
+ * Runs `onClose` when a press lands outside `ref` while `open` is true, so a bucket closes as soon as
+ * you move on to something else on the page.
+ */
+export function useCloseOnOutsidePress(ref: RefObject<HTMLElement>, open: boolean, onClose: () => void) {
+  useEffect(() => {
+    if (!open) return;
+    const onPress = (e: PointerEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    };
+    document.addEventListener('pointerdown', onPress);
+    return () => document.removeEventListener('pointerdown', onPress);
+  }, [ref, open, onClose]);
+}
 
 /** Bottom row of a bucket card: the stats on the left and the expand chevron on the right. */
 export function BucketFooter({ label, open, onToggle }: { label: ReactNode; open: boolean; onToggle: () => void }) {

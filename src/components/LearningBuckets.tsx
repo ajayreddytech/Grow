@@ -1,11 +1,11 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { Check, PartyPopper, Pencil, Plus, Trash2, X } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { bucketLook } from '../lib/bucketLook';
 import { defaultBucketId, type Entry, type LearningBucket } from '../lib/types';
 import { cn } from '../lib/utils';
-import { AddEntryForm, BucketFooter } from './BucketParts';
+import { AddEntryForm, BucketFooter, useCloseOnOutsidePress } from './BucketParts';
 
 const plural = (n: number) => (n === 1 ? 'learning' : 'learnings');
 
@@ -29,6 +29,8 @@ interface Props {
 export function LearningBuckets({ learnings }: Props) {
   const { learningBuckets } = useApp();
   const [managing, setManaging] = useState(false);
+  /** Only one bucket is open at a time. */
+  const [openId, setOpenId] = useState<string | null>(null);
 
   const byBucket = useMemo(() => {
     const home = defaultBucketId(learningBuckets);
@@ -63,7 +65,16 @@ export function LearningBuckets({ learnings }: Props) {
 
       <ul className="mt-4 grid items-start gap-4 md:grid-cols-2 xl:grid-cols-3">
         {learningBuckets.map((b, i) => (
-          <BucketCard key={b.id} bucket={b} index={i} items={byBucket.get(b.id) ?? []} buckets={learningBuckets} managing={managing} />
+          <BucketCard
+            key={b.id}
+            bucket={b}
+            index={i}
+            items={byBucket.get(b.id) ?? []}
+            buckets={learningBuckets}
+            managing={managing}
+            open={openId === b.id}
+            onOpenChange={(v) => setOpenId(v ? b.id : null)}
+          />
         ))}
       </ul>
     </section>
@@ -122,15 +133,21 @@ function BucketCard({
   items,
   buckets,
   managing,
+  open,
+  onOpenChange,
 }: {
   bucket: LearningBucket;
   index: number;
   items: Entry[];
   buckets: LearningBucket[];
   managing: boolean;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }) {
   const { renameLearningBucket, removeLearningBucket, bulkAdd, notify } = useApp();
-  const [open, setOpen] = useState(false);
+  const cardRef = useRef<HTMLElement>(null);
+  const closeCard = useCallback(() => onOpenChange(false), [onOpenChange]);
+  useCloseOnOutsidePress(cardRef, open, closeCard);
   const [mode, setMode] = useState<Mode>('view');
   const [draft, setDraft] = useState(bucket.name);
   const [moveTo, setMoveTo] = useState('');
@@ -256,7 +273,7 @@ function BucketCard({
       transition={{ delay: index * 0.07, layout: { type: 'spring', stiffness: 300, damping: 32 } }}
       className="min-w-0"
     >
-      <section className={cn('card relative min-w-0 overflow-hidden', celebrating && 'ring-1 ring-inset ring-leaf-500/25 dark:ring-leaf-400/20')}>
+      <section ref={cardRef} className={cn('card relative min-w-0 overflow-hidden', celebrating && 'ring-1 ring-inset ring-leaf-500/25 dark:ring-leaf-400/20')}>
         {current === 'rename' ? (
           renameRow
         ) : current === 'delete' ? (
@@ -264,7 +281,7 @@ function BucketCard({
         ) : (
           <div className="relative">
             <div className={cn('pointer-events-none absolute inset-0 bg-gradient-to-br to-transparent', look.accent)} aria-hidden />
-            <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} className="relative block w-full p-5 pb-3 text-left sm:p-6 sm:pb-4">
+            <button type="button" onClick={() => onOpenChange(!open)} aria-expanded={open} className="relative block w-full p-5 pb-3 text-left sm:p-6 sm:pb-4">
               <div className="flex items-start justify-between">
                 <span className="grid h-14 w-14 place-items-center rounded-2xl bg-white/70 text-3xl shadow-sm dark:bg-white/10" aria-hidden>
                   {look.emoji}
@@ -287,7 +304,7 @@ function BucketCard({
                 {milestone(count)}
               </p>
             </button>
-            <BucketFooter label={<span className="truncate">{uniqueTitles} unique · {thisMonth} this month</span>} open={open} onToggle={() => setOpen((v) => !v)} />
+            <BucketFooter label={<span className="truncate">{uniqueTitles} unique · {thisMonth} this month</span>} open={open} onToggle={() => onOpenChange(!open)} />
             {managing && (
               <div className="px-5 pb-5 sm:px-6 sm:pb-6">
                 <button

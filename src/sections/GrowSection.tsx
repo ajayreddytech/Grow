@@ -1,7 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { Flame, Loader2, Mic, Quote as QuoteIcon, Sparkles, Square, Wand2, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { BUCKET_STYLE } from '../components/EntryCard';
 import { Logo } from '../components/Logo';
 import { Modal } from '../components/Modal';
 import { useApp } from '../context/AppContext';
@@ -18,6 +17,9 @@ interface Pending {
 }
 
 const plural = (n: number) => (n === 1 ? 'entry' : 'entries');
+
+/** Solid colours for dropdown options: the popup does not inherit the select's translucent tint. */
+const OPTION_CLASS = 'bg-white text-ink-900 dark:bg-ink-800 dark:text-leaf-50';
 
 export function GrowSection() {
   const { entries, bulkAdd, notify, learningBuckets } = useApp();
@@ -221,20 +223,23 @@ function ConfirmModal({
                     value={choiceOf(item, fallback)}
                     onChange={(e) => updateItem(i, fromChoice(e.target.value))}
                     aria-label="Bucket"
-                    className={cn('chip max-w-full cursor-pointer border-0 py-1.5 text-xs font-semibold', BUCKET_STYLE[item.bucket])}
+                    className={cn(
+                      'max-w-full cursor-pointer appearance-auto rounded-full border px-3 py-1.5 text-xs font-semibold',
+                      'border-ink-900/20 bg-white text-ink-900 dark:border-white/20 dark:bg-ink-800 dark:text-leaf-50',
+                    )}
                   >
                     {learningBuckets.map((b) => (
-                      <option key={b.id} value={`learning:${b.id}`}>
+                      <option key={b.id} value={`learning:${b.id}`} className={OPTION_CLASS}>
                         {BUCKETS.learning.emoji} {b.name}
                       </option>
                     ))}
-                    <option value="prabhupada">
+                    <option value="prabhupada" className={OPTION_CLASS}>
                       {BUCKETS.prabhupada.emoji} {BUCKETS.prabhupada.label}
                     </option>
-                    <option value="mentorship">
+                    <option value="mentorship" className={OPTION_CLASS}>
                       {BUCKETS.mentorship.emoji} {BUCKETS.mentorship.label}
                     </option>
-                    <option value="workshop">
+                    <option value="workshop" className={OPTION_CLASS}>
                       {BUCKETS.workshop.emoji} {BUCKETS.workshop.label}
                     </option>
                   </select>

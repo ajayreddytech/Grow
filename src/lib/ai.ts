@@ -101,7 +101,7 @@ const COMMANDS = {
  * subject, e.g. "Working of metal detectors" → Technology. Order matters: the first match wins.
  */
 const TOPIC_HINTS: [string, RegExp][] = [
-  ['Technology', /\b(metal detectors?|technolog\w*|computers?|software|hardware|apps?|internet|code|coding|programming|algorithms?|circuits?|batter(?:y|ies)|electronics?|engines?|robots?|artificial intelligence|machine learning|cloud|databases?|networks?|smartphones?|sensors?|radars?|satellites?|gadgets?)\b/i],
+  ['Technology', /\b(metal detectors?|technolog\w*|computers?|software|hardware|apps?|internet|code|coding|programming|algorithms?|circuits?|batter(?:y|ies)|electronics?|engines?|robots?|artificial intelligence|machine learning|cloud|databases?|networks?|smartphones?|sensors?|radars?|satellites?|gadgets?|java|javascript|typescript|python|kotlin|golang|rust|sql|html|css|react|linux|docker|kubernetes|git|api|frameworks?|libraries|compilers?)\b/i],
   ['Nature', /\b(trees?|banyans?|plants?|flowers?|birds?|rivers?|oceans?|forests?|mountains?|soils?|weather|animals?|ecosystems?|leaves|insects?|bees?|rain|monsoons?|seeds?|clouds?)\b/i],
   ['Culinary', /\b(recipes?|cook(?:ing|s)?|spices?|dish(?:es)?|bak(?:e|ing)|food|flavou?rs?|ingredients?|sauces?|curry|rice|bread|cuisines?|nutrition)\b/i],
   ['IT Career', /\b(career|resumes?|interviews?|jobs?|salar(?:y|ies)|linkedin|certifications?|promotions?|colleagues?|workplace|agile|scrum)\b/i],
@@ -387,6 +387,7 @@ function detectBucket(t: string): Bucket {
 // Each "I learned …" / "learned that …" marks the start of a takeaway.
 const LEARNING_MARKER = /(?:\b(?:today\s+)?i\s+(?:have\s+|just\s+|also\s+)?)?\b(?:learned|learnt|realized|realised|discovered|understood)\b(?:\s+(?:that|how))?/gi;
 const BOILERPLATE_ONLY = /^(today|so|and|also|then|yeah|well|okay|ok)$/i;
+const SINGLE_WORD_FILLER = /^(it|this|that|them|these|those|there|here|something|stuff|things?|more|some|one|yes|no|nothing)$/i;
 
 /** Pulls each distinct takeaway out of a learning note, dropping the spoken framing around it. */
 export function splitLearnings(text: string): string[] {
@@ -407,7 +408,9 @@ function cleanTakeaway(raw: string): string {
     .replace(/^(today|and|also|so|that|then|to|how)\b[\s,]*/i, '')
     .replace(/[\s,;:]+(and|also|so|then)$/i, '')
     .replace(/[\s,;:]+$/, '');
-  if (!t || BOILERPLATE_ONLY.test(t.replace(/[.!?]$/, '')) || t.split(' ').length < 2) return '';
+  // A single word is a valid takeaway when it names something ("Java", "Metal detectors"); filler words are not.
+  const bare = t.replace(/[.!?]$/, '');
+  if (!t || BOILERPLATE_ONLY.test(bare) || (t.split(' ').length < 2 && (bare.length < 2 || SINGLE_WORD_FILLER.test(bare)))) return '';
   const sentence = t[0].toUpperCase() + t.slice(1);
   return (/[.!?…"')]$/.test(sentence) ? sentence : sentence + '.').slice(0, 280);
 }
