@@ -1,0 +1,97 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+  .dark {
+    color-scheme: dark;
+  }
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply min-h-screen bg-cream-100 font-sans text-ink-900 antialiased dark:bg-ink-900 dark:text-leaf-50;
+  }
+  ::selection {
+    @apply bg-leaf-300/60 text-ink-900;
+  }
+  :focus-visible {
+    @apply outline-none ring-2 ring-leaf-500/70;
+  }
+}
+
+@layer components {
+  .glass {
+    @apply border border-white/60 bg-white/55 shadow-soft backdrop-blur-xl dark:border-white/[0.07] dark:bg-ink-800/55 dark:shadow-[0_10px_40px_-12px_rgba(0,0,0,0.6)];
+  }
+  .glass-strong {
+    @apply border border-white/70 bg-white/80 shadow-soft backdrop-blur-2xl dark:border-white/10 dark:bg-ink-800/85;
+  }
+  .card {
+    @apply glass rounded-3xl;
+  }
+  .muted {
+    @apply text-ink-900/60 dark:text-leaf-50/55;
+  }
+  .eyebrow {
+    @apply text-[11px] font-semibold uppercase tracking-[0.18em] text-leaf-700 dark:text-leaf-300;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply btn bg-leaf-600 text-white shadow-glow hover:bg-leaf-500 dark:bg-leaf-500 dark:text-ink-900 dark:hover:bg-leaf-400;
+  }
+  .btn-ghost {
+    @apply btn bg-ink-900/[0.04] text-ink-900 hover:bg-ink-900/[0.08] dark:bg-white/[0.06] dark:text-leaf-50 dark:hover:bg-white/[0.1];
+  }
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold;
+  }
+  .input {
+    @apply w-full rounded-2xl border border-ink-900/10 bg-white/70 px-4 py-3 text-[15px] placeholder:text-ink-900/40 focus:border-leaf-500 focus:outline-none focus:ring-4 focus:ring-leaf-500/15 dark:border-white/10 dark:bg-ink-900/60 dark:placeholder:text-leaf-50/30;
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(39, 163, 95, 0.35) transparent;
+  }
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .pb-safe {
+    padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
+  }
+}
+
+.grain {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Recharts tweaks */
+.recharts-cartesian-grid line {
+  stroke-dasharray: 3 6;
+}
+.recharts-surface:focus,
+.recharts-wrapper:focus,
+.recharts-wrapper *:focus {
+  outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

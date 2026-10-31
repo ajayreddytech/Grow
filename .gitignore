@@ -1,0 +1,19 @@
+# Dependencies and build output
+node_modules
+dist
+
+# Secrets and local environment (keep only .env.example in the repo)
+.env
+.env.*
+!.env.example
+*.local
+
+# Firebase CLI and emulator files
+.firebase/
+firebase-debug.log*
+firestore-debug.log*
+
+# Logs and OS files
+*.log
+.DS_Store
+Thumbs.db

@@ -1,0 +1,18 @@
+{
+  "id": "/",
+  "name": "Grow — Learning Journal",
+  "short_name": "Grow",
+  "description": "Capture what you learn, keep it in your treasure box, and watch your learning curve rise.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "any",
+  "background_color": "#f5f2e8",
+  "theme_color": "#06110c",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
