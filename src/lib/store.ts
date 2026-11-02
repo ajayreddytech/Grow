@@ -29,7 +29,8 @@ export interface EntryStore {
 export interface BucketStore {
   subscribe(cb: (buckets: LearningBucket[]) => void, onError?: (e: Error) => void): () => void;
   add(bucket: LearningBucket): Promise<void>;
-  rename(id: string, name: string): Promise<void>;
+  /** Changes the name and/or icon. A field left undefined is not touched; icon null means "automatic". */
+  update(id: string, patch: { name?: string; icon?: string | null }): Promise<void>;
   remove(id: string): Promise<void>;
 }
 
@@ -83,6 +84,7 @@ function normaliseBuckets(rows: { raw: Record<string, unknown>; id: string }[]):
       id,
       name: typeof raw.name === 'string' ? titleCase(raw.name) : '',
       createdAt: typeof raw.createdAt === 'number' ? raw.createdAt : 0,
+      icon: typeof raw.icon === 'string' && raw.icon ? raw.icon : null,
     }))
     .filter((b) => b.name)
     .sort(byCreated);
@@ -177,8 +179,8 @@ export const localBucketStore: BucketStore = {
   async add(bucket) {
     writeLocalBuckets([...readLocalBuckets(), bucket]);
   },
-  async rename(id, name) {
-    writeLocalBuckets(readLocalBuckets().map((b) => (b.id === id ? { ...b, name } : b)));
+  async update(id, patch) {
+    writeLocalBuckets(readLocalBuckets().map((b) => (b.id === id ? { ...b, ...patch } : b)));
   },
   async remove(id) {
     writeLocalBuckets(readLocalBuckets().filter((b) => b.id !== id));
@@ -247,10 +249,18 @@ export function firestoreBucketStore(userId: string): BucketStore {
     },
     // Explicit ids: guest buckets keep theirs when imported, so filed learnings still point at them.
     async add(bucket) {
-      await setDoc(doc(col, bucket.id), { name: titleCase(bucket.name), createdAt: bucket.createdAt });
+      await setDoc(doc(col, bucket.id), {
+        name: titleCase(bucket.name),
+        createdAt: bucket.createdAt,
+        ...(bucket.icon ? { icon: bucket.icon } : {}),
+      });
     },
-    async rename(id, name) {
-      await updateDoc(doc(col, id), { name: titleCase(name) });
+    async update(id, patch) {
+      // Firestore rejects undefined values, so only the fields that were given are written.
+      await updateDoc(doc(col, id), {
+        ...(patch.name !== undefined && { name: titleCase(patch.name) }),
+        ...(patch.icon !== undefined && { icon: patch.icon }),
+      });
     },
     async remove(id) {
       await deleteDoc(doc(col, id));

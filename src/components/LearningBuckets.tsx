@@ -6,6 +6,7 @@ import { bucketLook } from '../lib/bucketLook';
 import { defaultBucketId, type Entry, type LearningBucket } from '../lib/types';
 import { cn } from '../lib/utils';
 import { AddEntryForm, BucketFooter, useCloseOnOutsidePress } from './BucketParts';
+import { IconPicker } from './IconPicker';
 
 const plural = (n: number) => (n === 1 ? 'learning' : 'learnings');
 
@@ -84,6 +85,7 @@ export function LearningBuckets({ learnings }: Props) {
 function AddBucketForm() {
   const { addLearningBucket, notify } = useApp();
   const [name, setName] = useState('');
+  const [icon, setIcon] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const add = async () => {
@@ -91,8 +93,9 @@ function AddBucketForm() {
     if (!clean || busy) return;
     setBusy(true);
     try {
-      await addLearningBucket(clean);
+      await addLearningBucket(clean, icon);
       setName('');
+      setIcon(null);
       notify(`Created “${clean.replace(/\s+/g, ' ')}”`);
     } catch (err) {
       notify((err as Error).message, 'error');
@@ -103,23 +106,29 @@ function AddBucketForm() {
 
   return (
     <form
-      className="flex gap-2"
+      className="space-y-3"
       onSubmit={(e) => {
         e.preventDefault();
         void add();
       }}
     >
-      <input
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        placeholder="New bucket, e.g. Finance"
-        maxLength={40}
-        aria-label="New bucket name"
-        className="input min-w-0 py-2.5"
-      />
-      <button type="submit" disabled={!name.trim() || busy} className="btn-primary shrink-0 px-4">
-        <Plus className="h-4 w-4" /> Add
-      </button>
+      <div className="flex gap-2">
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="New bucket, e.g. Finance"
+          maxLength={40}
+          aria-label="New bucket name"
+          className="input min-w-0 py-2.5"
+        />
+        <button type="submit" disabled={!name.trim() || busy} className="btn-primary shrink-0 px-4">
+          <Plus className="h-4 w-4" /> Add
+        </button>
+      </div>
+      <div className="space-y-2">
+        <p className="muted text-xs font-medium">Choose an icon</p>
+        <IconPicker value={icon} onChange={setIcon} name={name.trim() || 'New bucket'} />
+      </div>
     </form>
   );
 }
@@ -150,10 +159,11 @@ function BucketCard({
   useCloseOnOutsidePress(cardRef, open, closeCard);
   const [mode, setMode] = useState<Mode>('view');
   const [draft, setDraft] = useState(bucket.name);
+  const [iconDraft, setIconDraft] = useState<string | null>(bucket.icon ?? null);
   const [moveTo, setMoveTo] = useState('');
   const [busy, setBusy] = useState(false);
 
-  const look = bucketLook(bucket.name);
+  const look = bucketLook(bucket.name, bucket.icon);
   const count = items.length;
   const targets = buckets.filter((b) => b.id !== bucket.id);
   // Outside manage mode the card is always in view mode, so a stale rename/delete row closes.
@@ -174,7 +184,7 @@ function BucketCard({
     if (busy || !draft.trim()) return;
     setBusy(true);
     try {
-      await renameLearningBucket(bucket.id, draft);
+      await renameLearningBucket(bucket.id, draft, iconDraft);
       setMode('view');
     } catch (err) {
       notify((err as Error).message, 'error');
@@ -199,7 +209,7 @@ function BucketCard({
 
   const renameRow = (
     <div className="space-y-3 p-5 sm:p-6">
-      <p className="eyebrow">Rename bucket</p>
+      <p className="eyebrow">Rename or change icon</p>
       <div className="flex items-center gap-2">
         <input
           autoFocus
@@ -220,6 +230,7 @@ function BucketCard({
           <X className="h-4 w-4" />
         </button>
       </div>
+      <IconPicker value={iconDraft} onChange={setIconDraft} name={draft.trim() || bucket.name} />
       <button
         type="button"
         onClick={() => {
@@ -311,11 +322,12 @@ function BucketCard({
                   type="button"
                   onClick={() => {
                     setDraft(bucket.name);
+                    setIconDraft(bucket.icon ?? null);
                     setMode('rename');
                   }}
                   className="text-xs font-semibold text-leaf-700 hover:underline dark:text-leaf-300"
                 >
-                  Rename or delete “{bucket.name}”
+                  Rename, change icon or delete “{bucket.name}”
                 </button>
               </div>
             )}

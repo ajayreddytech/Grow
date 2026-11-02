@@ -42,8 +42,9 @@ interface AppState {
   importGuestEntries: () => Promise<number>;
   learningBuckets: LearningBucket[];
   /** Throws a readable Error when the name is empty, too long or already used. */
-  addLearningBucket: (name: string) => Promise<void>;
-  renameLearningBucket: (id: string, name: string) => Promise<void>;
+  addLearningBucket: (name: string, icon?: string | null) => Promise<void>;
+  /** Changes the name and icon together. icon null goes back to the automatic icon. */
+  renameLearningBucket: (id: string, name: string, icon?: string | null) => Promise<void>;
   /** Deletes the bucket and moves its learnings to `moveTo`. Resolves with how many moved. */
   removeLearningBucket: (id: string, moveTo: string) => Promise<number>;
   toasts: Toast[];
@@ -246,11 +247,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return fresh.length;
     },
     learningBuckets,
-    addLearningBucket: async (name) => {
-      await bucketStore.add({ id: uid(), name: checkBucketName(name), createdAt: Date.now() });
+    addLearningBucket: async (name, icon) => {
+      await bucketStore.add({ id: uid(), name: checkBucketName(name), createdAt: Date.now(), icon: icon ?? null });
     },
-    renameLearningBucket: async (id, name) => {
-      await bucketStore.rename(id, checkBucketName(name, id));
+    renameLearningBucket: async (id, name, icon) => {
+      await bucketStore.update(id, { name: checkBucketName(name, id), icon });
     },
     removeLearningBucket: async (id, moveTo) => {
       if (!moveTo || moveTo === id) throw new Error('Pick a different bucket to move the learnings to.');

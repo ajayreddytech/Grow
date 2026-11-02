@@ -14,14 +14,14 @@ const bucketOf = (e: Entry, buckets: LearningBucket[], home: string | null) =>
   buckets.find((b) => b.id === e.group) ?? buckets.find((b) => b.id === home) ?? null;
 
 /**
- * Every learning you have logged, in one numbered list, oldest first. Mentors, books and workshops are
+ * Every learning you have logged, in one numbered list, newest first. Mentors, books and workshops are
  * left out: this page is only the learnings.
  */
 export function CompendiumSection() {
   const { entries, learningBuckets } = useApp();
 
   const learnings = useMemo(
-    () => entries.filter((e) => e.bucket === 'learning').sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()),
+    () => entries.filter((e) => e.bucket === 'learning').sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()),
     [entries],
   );
 
@@ -30,7 +30,7 @@ export function CompendiumSection() {
   return (
     <div>
       <SectionHeader eyebrow="Compendium" title="Everything you learnt">
-        {learnings.length > 0 ? `${learnings.length} ${plural(learnings.length)} in the order you logged them, oldest first.` : undefined}
+        {learnings.length > 0 ? `${learnings.length} ${plural(learnings.length)} in the order you logged them, newest first.` : undefined}
       </SectionHeader>
 
       {learnings.length === 0 ? (
@@ -41,7 +41,7 @@ export function CompendiumSection() {
         <ol className="card divide-y divide-ink-900/5 overflow-hidden rounded-3xl dark:divide-white/5">
           {learnings.map((e, i) => {
             const bucket = bucketOf(e, learningBuckets, home);
-            const look = bucket ? bucketLook(bucket.name) : null;
+            const look = bucket ? bucketLook(bucket.name, bucket.icon) : null;
             return (
               <motion.li
                 key={e.id}

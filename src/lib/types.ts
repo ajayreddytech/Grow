@@ -19,11 +19,15 @@ export interface Entry {
 
 export type NewEntry = Omit<Entry, 'id'>;
 
-/** A user-created bucket in the Learnings section. */
+/**
+ * A user-created bucket in the Learnings section. `icon` is an emoji the user picked; null or missing
+ * means the icon is worked out from the name (see bucketLook).
+ */
 export interface LearningBucket {
   id: string;
   name: string;
   createdAt: number;
+  icon?: string | null;
 }
 
 /** Created the first time the Learning page is opened on a device or account. Keep "Others" last. */

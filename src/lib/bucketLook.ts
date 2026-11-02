@@ -148,7 +148,19 @@ const hash = (s: string) => {
   return h;
 };
 
-export function bucketLook(name: string): BucketLook {
+/**
+ * The look of a bucket. A chosen icon replaces the automatic emoji; everything else (colour, blurb,
+ * example) still comes from the name.
+ */
+export function bucketLook(name: string, icon?: string | null): BucketLook {
+  const look = automaticLook(name);
+  return icon ? { ...look, emoji: icon } : look;
+}
+
+/** The icon a bucket gets when the user has not picked one. */
+export const automaticIcon = (name: string) => automaticLook(name).emoji;
+
+function automaticLook(name: string): BucketLook {
   const key = name.trim().toLowerCase();
   const starter = STARTERS[key];
   if (starter) return { emoji: starter.emoji, ...TONE[starter.tone], blurb: starter.blurb, example: starter.example };
