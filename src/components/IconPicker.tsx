@@ -1,11 +1,11 @@
 import type { ReactNode } from 'react';
 import { BUCKET_ICONS } from '../lib/bucketIcons';
-import { automaticIcon } from '../lib/bucketLook';
+import { automaticIcon, suggestedIcons } from '../lib/bucketLook';
 import { cn } from '../lib/utils';
 
 /**
- * Grid of the 50 bucket icons, plus an "Auto" choice that goes back to the icon worked out from the name.
- * `value` null means Auto. `name` is the bucket name, so the Auto button can show what it would be.
+ * Icon picker for a bucket: an "Auto" choice (the icon worked out from the name), icons suited to this
+ * bucket's theme, then the full list of bucket icons. `value` null means Auto. `name` is the bucket name.
  */
 export function IconPicker({ value, onChange, name }: { value: string | null; onChange: (icon: string | null) => void; name: string }) {
   const option = (icon: string | null, label: string, content: ReactNode) => {
@@ -28,10 +28,27 @@ export function IconPicker({ value, onChange, name }: { value: string | null; on
     );
   };
 
+  const suggested = [...new Set(suggestedIcons(name))];
+
   return (
-    <div role="group" aria-label="Bucket icon" className="flex flex-wrap gap-1.5">
-      {option(null, `Automatic icon (${automaticIcon(name)})`, <span className="text-xs font-semibold">Auto {automaticIcon(name)}</span>)}
-      {BUCKET_ICONS.map((icon) => option(icon, `Icon ${icon}`, icon))}
+    <div role="group" aria-label="Bucket icon" className="space-y-2">
+      <div className="flex flex-wrap gap-1.5">
+        {option(null, `Automatic icon (${automaticIcon(name)})`, <span className="text-xs font-semibold">Auto {automaticIcon(name)}</span>)}
+      </div>
+      {suggested.length > 0 && (
+        <div className="space-y-1">
+          <p className="text-xs font-semibold text-ink-900/60 dark:text-white/60">Suggested for this bucket</p>
+          <div className="flex flex-wrap gap-1.5">
+            {suggested.map((icon) => option(icon, `Icon ${icon}`, icon))}
+          </div>
+        </div>
+      )}
+      <div className="space-y-1">
+        <p className="text-xs font-semibold text-ink-900/60 dark:text-white/60">All icons</p>
+        <div className="flex flex-wrap gap-1.5">
+          {BUCKET_ICONS.map((icon) => option(icon, `Icon ${icon}`, icon))}
+        </div>
+      </div>
     </div>
   );
 }

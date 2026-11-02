@@ -3,6 +3,7 @@
  * Starter buckets have curated text. A custom bucket gets an icon and a colour picked from its name,
  * so every new bucket looks finished without any input from the user.
  */
+import { THEME_ICONS } from './bucketIcons';
 
 export interface BucketLook {
   emoji: string;
@@ -159,6 +160,9 @@ export function bucketLook(name: string, icon?: string | null): BucketLook {
 
 /** The icon a bucket gets when the user has not picked one. */
 export const automaticIcon = (name: string) => automaticLook(name).emoji;
+
+/** Extra icons that suit this bucket's theme, offered first in the icon picker. */
+export const suggestedIcons = (name: string): string[] => THEME_ICONS[automaticIcon(name)] ?? [];
 
 function automaticLook(name: string): BucketLook {
   const key = name.trim().toLowerCase();
