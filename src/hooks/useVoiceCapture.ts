@@ -41,17 +41,36 @@ const joinText = (...parts: string[]) =>
 const words = (s: string) => s.split(/\s+/).filter(Boolean);
 const wordKey = (w: string) => w.toLowerCase().replace(/[^\p{L}\p{N}']/gu, '');
 
+/** How far back into the transcript a restarted session's words are looked for. */
+const LOOKBACK_WORDS = 200;
+
 /**
- * Appends `next` to `base`, first dropping the opening words of `next` that `base` already ends with.
- * A restarted recognition session re-sends words the transcript already has; without this they repeat.
+ * Appends `next` to `base` without repeating words already there. A restarted recognition session re-sends
+ * words the transcript already has, and they can sit anywhere in its recent end, not just at the very end:
+ *  1. if `next` is already inside the recent part of `base`, nothing is added;
+ *  2. otherwise, if the start of `next` matches the end of `base`, only the words after that overlap are added.
  */
 const appendTranscript = (base: string, next: string) => {
   const b = words(base);
   const n = words(next);
-  for (let k = Math.min(b.length, n.length, 60); k > 0; k--) {
+  if (!n.length) return joinText(base);
+  if (!b.length) return joinText(next);
+  const from = Math.max(0, b.length - LOOKBACK_WORDS);
+
+  // 1. Whole new text already present (only for phrases of 3+ words, so a short "yes" is never dropped).
+  if (n.length >= 3) {
+    for (let s = from; s + n.length <= b.length; s++) {
+      if (n.every((w, i) => wordKey(b[s + i]) === wordKey(w))) return joinText(base);
+    }
+  }
+
+  // 2. Longest overlap: the earliest start in the lookback whose tail of `base` opens `next`.
+  for (let s = from; s < b.length; s++) {
+    const tail = b.length - s;
+    if (tail > n.length) continue;
     let same = true;
-    for (let i = 0; i < k && same; i++) same = wordKey(b[b.length - k + i]) === wordKey(n[i]);
-    if (same) return joinText(base, n.slice(k).join(' '));
+    for (let i = 0; i < tail && same; i++) same = wordKey(b[s + i]) === wordKey(n[i]);
+    if (same) return joinText(base, n.slice(tail).join(' '));
   }
   return joinText(base, next);
 };

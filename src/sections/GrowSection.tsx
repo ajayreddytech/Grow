@@ -6,6 +6,7 @@ import { Modal } from '../components/Modal';
 import { useApp } from '../context/AppContext';
 import { useVoiceCapture, type VoiceResult } from '../hooks/useVoiceCapture';
 import { extractEntries } from '../lib/ai';
+import { bucketLook } from '../lib/bucketLook';
 import { quoteForDate } from '../lib/quotes';
 import { currentStreak } from '../lib/stats';
 import { BUCKETS, defaultBucketId, type Bucket, type NewEntry } from '../lib/types';
@@ -230,7 +231,7 @@ function ConfirmModal({
                   >
                     {learningBuckets.map((b) => (
                       <option key={b.id} value={`learning:${b.id}`} className={OPTION_CLASS}>
-                        {BUCKETS.learning.emoji} {b.name}
+                        {bucketLook(b.name, b.icon).emoji} {b.name}
                       </option>
                     ))}
                     <option value="prabhupada" className={OPTION_CLASS}>
