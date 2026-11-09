@@ -37,7 +37,7 @@ export function IconPicker({ value, onChange, name }: { value: string | null; on
     );
   };
 
-  const section = (title: string, icons: string[]) => (
+  const section = (title: string, icons: readonly string[]) => (
     <div className="space-y-1.5">
       <p className="text-xs font-semibold text-ink-900/60 dark:text-white/60">{title}</p>
       <div className="grid grid-cols-6 gap-1.5 sm:grid-cols-8">{icons.map((icon) => cell(icon, `Icon ${icon}`, icon))}</div>
