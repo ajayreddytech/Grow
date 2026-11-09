@@ -1,4 +1,4 @@
-export type Bucket = 'learning' | 'prabhupada' | 'mentorship' | 'workshop';
+export type Bucket = 'learning' | 'prabhupada' | 'mentorship' | 'workshop' | 'recall';
 
 /**
  * A single saved record. Learnings store the core takeaway as `title`; books, mentor sessions and
@@ -15,6 +15,10 @@ export interface Entry {
   source: 'voice' | 'manual';
   /** Learnings only: id of the learning bucket they are filed in. null = not filed yet, shown under the default bucket. */
   group?: string | null;
+  /** Learnings only: position chosen by hand inside their bucket (0, 1, 2 …). null or missing = not placed yet. */
+  order?: number | null;
+  /** Recall only: id of the Prabhupada, mentor or workshop entry this checklist item was copied from. */
+  ref?: string | null;
 }
 
 export type NewEntry = Omit<Entry, 'id'>;
@@ -50,4 +54,5 @@ export const BUCKETS: Record<Bucket, { label: string; short: string; emoji: stri
   prabhupada: { label: 'Srila Prabhupada', short: 'Srila Prabhupada', emoji: '📘' },
   mentorship: { label: 'Mentors', short: 'Mentors', emoji: '🤝' },
   workshop: { label: 'Workshops', short: 'Workshops', emoji: '🛠️' },
+  recall: { label: 'Recall & Strengthen', short: 'Recall', emoji: '💪' },
 };

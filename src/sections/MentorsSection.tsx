@@ -1,12 +1,15 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { BookOpen, Check, Hammer, HeartHandshake, Pencil, PartyPopper, Trash2, X, type LucideIcon } from 'lucide-react';
+import { BicepsFlexed, BookOpen, Check, Hammer, HeartHandshake, Pencil, PartyPopper, Trash2, X, type LucideIcon } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import { AddEntryForm, BucketFooter, useCloseOnOutsidePress } from '../components/BucketParts';
 import { useApp } from '../context/AppContext';
 import type { Bucket, Entry } from '../lib/types';
 import { cn } from '../lib/utils';
 
-const COLUMNS: { bucket: Exclude<Bucket, 'learning'>; title: string; emoji: string; icon: LucideIcon; accent: string; ring: string; ready: string; empty: string; add: string; celebrate: boolean }[] = [
+/** The buckets whose contents are copied into Recall & Strengthen. */
+const SOURCE_BUCKETS: Bucket[] = ['prabhupada', 'mentorship', 'workshop'];
+
+const COLUMNS: { bucket: Exclude<Bucket, 'learning'>; title: string; emoji: string; icon: LucideIcon; accent: string; ring: string; ready: string; empty: string; add: string; celebrate: boolean; checklist?: boolean }[] = [
   {
     bucket: 'prabhupada',
     title: 'Srila Prabhupada',
@@ -43,6 +46,19 @@ const COLUMNS: { bucket: Exclude<Bucket, 'learning'>; title: string; emoji: stri
     add: 'Add a workshop, e.g. Public speaking',
     celebrate: true,
   },
+  {
+    bucket: 'recall',
+    title: 'Recall & Strengthen',
+    emoji: '💪',
+    icon: BicepsFlexed,
+    accent: 'from-rose-300/50 via-rose-200/20 dark:from-rose-500/25 dark:via-rose-500/5',
+    ring: 'bg-rose-500 text-white dark:bg-rose-400 dark:text-ink-900',
+    ready: 'Ready to recall',
+    empty: '',
+    add: '',
+    celebrate: true,
+    checklist: true,
+  },
 ];
 
 /** Encouragement line that grows with the count. */
@@ -53,11 +69,44 @@ const milestone = (n: number) => {
 };
 
 export function MentorsSection() {
-  const { entries } = useApp();
+  const { entries, bulkAdd, notify } = useApp();
   /** Only one column is open at a time. */
   const [openBucket, setOpenBucket] = useState<Bucket | null>(null);
   /** One edit switch for the whole section. While it is on, every entry in every bucket can be edited or deleted. */
   const [editing, setEditing] = useState(false);
+  const [building, setBuilding] = useState(false);
+
+  const recallCount = entries.filter((e) => e.bucket === 'recall').length;
+
+  /**
+   * Copies every Prabhupada, mentor and workshop entry into a new Recall & Strengthen checklist.
+   * The recall column only exists while it has items, so it disappears once everything is ticked off.
+   */
+  const createRecall = async () => {
+    if (building) return;
+    if (recallCount > 0) {
+      setOpenBucket('recall');
+      notify('Your recall list is already open');
+      return;
+    }
+    const sources = entries.filter((e) => SOURCE_BUCKETS.includes(e.bucket));
+    if (sources.length === 0) {
+      notify('Nothing to recall yet. Add a reading, session or workshop first.', 'info');
+      return;
+    }
+    setBuilding(true);
+    try {
+      await bulkAdd(sources.map((e) => ({ bucket: 'recall', title: e.title, timestamp: e.timestamp, source: e.source, group: null, ref: e.id })));
+      setOpenBucket('recall');
+      notify(`Added ${sources.length} to Recall & Strengthen`);
+    } catch (err) {
+      notify((err as Error).message, 'error');
+    } finally {
+      setBuilding(false);
+    }
+  };
+
+  const visibleColumns = COLUMNS.filter((col) => !col.checklist || recallCount > 0);
 
   return (
     <div>
@@ -66,20 +115,32 @@ export function MentorsSection() {
         <h1 className="mt-2 font-display text-3xl font-semibold tracking-tight sm:text-4xl">Srila Prabhupada, mentors & workshops</h1>
         <div className="mt-2 flex items-start justify-between gap-4">
           <p className="muted max-w-2xl text-[15px]">The three streams that shape you. Expand a card to see every entry.</p>
-          <button
-            type="button"
-            onClick={() => setEditing((v) => !v)}
-            aria-pressed={editing}
-            aria-label={editing ? 'Done editing' : 'Edit mentors'}
-            title={editing ? 'Done editing' : 'Edit mentors'}
-            className={cn('btn-ghost shrink-0 px-2.5 py-2', editing && 'border-leaf-500 text-leaf-700 dark:text-leaf-300')}
-          >
-            {editing ? <Check className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
-          </button>
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              type="button"
+              onClick={() => void createRecall()}
+              disabled={building}
+              aria-label="Recall and strengthen"
+              title="Recall and strengthen"
+              className="btn-ghost shrink-0 px-2.5 py-2"
+            >
+              <BicepsFlexed className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditing((v) => !v)}
+              aria-pressed={editing}
+              aria-label={editing ? 'Done editing' : 'Edit mentors'}
+              title={editing ? 'Done editing' : 'Edit mentors'}
+              className={cn('btn-ghost shrink-0 px-2.5 py-2', editing && 'border-leaf-500 text-leaf-700 dark:text-leaf-300')}
+            >
+              {editing ? <Check className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
+            </button>
+          </div>
         </div>
       </header>
       <div className="grid items-start gap-4 md:grid-cols-3">
-        {COLUMNS.map((col, i) => (
+        {visibleColumns.map((col, i) => (
           <Column
             key={col.bucket}
             col={col}
@@ -146,28 +207,41 @@ function Column({
             </span>
           </div>
           <h2 className="mt-5 font-display text-xl font-semibold leading-tight">{col.title}</h2>
-          {col.celebrate && (
+          {col.checklist ? (
             <p className="mt-1.5 flex items-center gap-1.5 text-sm font-semibold text-leaf-700 dark:text-leaf-300">
-              <motion.span
-                animate={{ rotate: [0, -14, 14, -8, 0], scale: [1, 1.15, 1] }}
-                transition={{ duration: 0.8, repeat: Infinity, repeatDelay: 3 }}
-                className="inline-flex"
-                aria-hidden
-              >
-                <PartyPopper className="h-4 w-4" />
-              </motion.span>
-              {items.length === 0 ? col.ready : milestone(items.length)}
+              {items.length === 0 ? 'All recalled' : `${items.length} to recall, tick each one off`}
             </p>
+          ) : (
+            col.celebrate && (
+              <p className="mt-1.5 flex items-center gap-1.5 text-sm font-semibold text-leaf-700 dark:text-leaf-300">
+                <motion.span
+                  animate={{ rotate: [0, -14, 14, -8, 0], scale: [1, 1.15, 1] }}
+                  transition={{ duration: 0.8, repeat: Infinity, repeatDelay: 3 }}
+                  className="inline-flex"
+                  aria-hidden
+                >
+                  <PartyPopper className="h-4 w-4" />
+                </motion.span>
+                {items.length === 0 ? col.ready : milestone(items.length)}
+              </p>
+            )
           )}
         </button>
         <BucketFooter
           label={
-            <>
-              <Icon className="h-3.5 w-3.5 shrink-0" />
-              <span className="truncate">
-                {uniqueTitles} unique · {thisMonth} this month
-              </span>
-            </>
+            col.checklist ? (
+              <>
+                <Icon className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">Tick off what you recall</span>
+              </>
+            ) : (
+              <>
+                <Icon className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">
+                  {uniqueTitles} unique · {thisMonth} this month
+                </span>
+              </>
+            )
           }
           open={open}
           onToggle={onToggle}
@@ -184,12 +258,22 @@ function Column({
             className="overflow-hidden"
           >
             <div className="border-t border-ink-900/5 p-4 sm:p-5 dark:border-white/5">
-              <AddEntryForm
-                placeholder={col.add}
-                onAdd={(title, timestamp) => bulkAdd([{ bucket: col.bucket, title, timestamp, source: 'manual', group: null }])}
-              />
+              {col.checklist ? null : (
+                <AddEntryForm
+                  placeholder={col.add}
+                  onAdd={(title, timestamp) => bulkAdd([{ bucket: col.bucket, title, timestamp, source: 'manual', group: null }])}
+                />
+              )}
               <div className="scrollbar-thin max-h-[60vh] overflow-y-auto sm:max-h-[32rem]">
-                {sorted.length === 0 ? (
+                {col.checklist ? (
+                  <ul className="space-y-1.5">
+                    <AnimatePresence initial={false}>
+                      {sorted.map((e) => (
+                        <ChecklistItem key={e.id} entry={e} />
+                      ))}
+                    </AnimatePresence>
+                  </ul>
+                ) : sorted.length === 0 ? (
                   <p className="muted text-sm">{col.empty}</p>
                 ) : (
                   <ul className="space-y-1.5">
@@ -204,6 +288,48 @@ function Column({
         )}
       </AnimatePresence>
     </motion.section>
+  );
+}
+
+/**
+ * One recall item. Ticking it off removes it from the list for good; the source entry in its own
+ * bucket is left alone. When the last item goes, the whole column disappears.
+ */
+function ChecklistItem({ entry }: { entry: Entry }) {
+  const { removeEntry, notify } = useApp();
+  const [busy, setBusy] = useState(false);
+
+  const tick = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await removeEntry(entry.id);
+      notify(`Well done! You recalled and strengthened “${entry.title}”`);
+    } catch (err) {
+      notify((err as Error).message, 'error');
+      setBusy(false);
+    }
+  };
+
+  return (
+    <motion.li
+      layout
+      exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+      transition={{ duration: 0.2 }}
+      className="overflow-hidden rounded-xl bg-white/50 dark:bg-white/[0.04]"
+    >
+      <label className="flex cursor-pointer items-start gap-3 px-3.5 py-2.5">
+        <input
+          type="checkbox"
+          checked={false}
+          disabled={busy}
+          onChange={() => void tick()}
+          aria-label={`Recalled: ${entry.title}`}
+          className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-leaf-600"
+        />
+        <span className="min-w-0 break-words text-sm font-semibold leading-relaxed">{entry.title}</span>
+      </label>
+    </motion.li>
   );
 }
 

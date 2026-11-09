@@ -1,5 +1,5 @@
-import { AnimatePresence, motion } from 'framer-motion';
-import { Check, PartyPopper, Pencil, Plus, Trash2, X } from 'lucide-react';
+import { AnimatePresence, Reorder, motion, useDragControls } from 'framer-motion';
+import { Check, GripVertical, PartyPopper, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { bucketLook } from '../lib/bucketLook';
@@ -153,7 +153,7 @@ function BucketCard({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const { renameLearningBucket, removeLearningBucket, bulkAdd, notify } = useApp();
+  const { renameLearningBucket, removeLearningBucket, bulkAdd, updateEntry, notify } = useApp();
   const cardRef = useRef<HTMLElement>(null);
   const closeCard = useCallback(() => onOpenChange(false), [onOpenChange]);
   useCloseOnOutsidePress(cardRef, open, closeCard);
@@ -168,8 +168,40 @@ function BucketCard({
   const targets = buckets.filter((b) => b.id !== bucket.id);
   // Outside manage mode the card is always in view mode, so a stale rename/delete row closes.
   const current: Mode = managing ? mode : 'view';
-  /** Newest first. */
-  const sorted = useMemo(() => [...items].sort((a, b) => b.timestamp.localeCompare(a.timestamp)), [items]);
+  /** Learnings not placed by hand yet come first, newest first; hand-placed ones follow in the chosen order. */
+  const sorted = useMemo(() => {
+    const unplaced = items.filter((e) => e.order == null).sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+    const placed = items.filter((e) => e.order != null).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    return [...unplaced, ...placed];
+  }, [items]);
+
+  /** The order shown while a learning is being dragged; null when nothing is being dragged. */
+  const [dragList, setDragList] = useState<Entry[] | null>(null);
+  const latestDrag = useRef<Entry[] | null>(null);
+  const shown = dragList ?? sorted;
+
+  const onReorder = (next: Entry[]) => {
+    latestDrag.current = next;
+    setDragList(next);
+  };
+
+  /** Saves the dropped order: every learning in the bucket is numbered in its new place. */
+  const commitOrder = async () => {
+    const next = latestDrag.current;
+    latestDrag.current = null;
+    if (!next) return;
+    const writes: Promise<void>[] = [];
+    next.forEach((e, i) => {
+      if (e.order !== i) writes.push(updateEntry(e.id, { order: i }));
+    });
+    try {
+      await Promise.all(writes);
+    } catch (err) {
+      notify((err as Error).message, 'error');
+    } finally {
+      setDragList(null);
+    }
+  };
   const uniqueTitles = new Set(items.map((e) => e.title)).size;
   const thisMonth = items.filter((e) => {
     const d = new Date(e.timestamp);
@@ -349,11 +381,11 @@ function BucketCard({
                   {count === 0 ? (
                     <p className="muted text-sm">{look.example}</p>
                   ) : (
-                    <ul className="space-y-1.5">
-                      {sorted.map((e) => (
-                        <ItemRow key={e.id} entry={e} bucketId={bucket.id} buckets={buckets} editing={managing} />
+                    <Reorder.Group as="ul" axis="y" values={shown} onReorder={onReorder} className="flex flex-col gap-1.5">
+                      {shown.map((e) => (
+                        <ItemRow key={e.id} entry={e} bucketId={bucket.id} buckets={buckets} editing={managing} onDrop={commitOrder} />
                       ))}
-                    </ul>
+                    </Reorder.Group>
                   )}
                 </div>
               </div>
@@ -366,14 +398,32 @@ function BucketCard({
 }
 
 /** A single learning. Plain text normally; with the bucket's Edit on, it gets inline edit, move-to-bucket and delete. */
-function ItemRow({ entry, bucketId, buckets, editing }: { entry: Entry; bucketId: string; buckets: LearningBucket[]; editing: boolean }) {
+function ItemRow({
+  entry,
+  bucketId,
+  buckets,
+  editing,
+  onDrop,
+}: {
+  entry: Entry;
+  bucketId: string;
+  buckets: LearningBucket[];
+  editing: boolean;
+  onDrop: () => void;
+}) {
   const { updateEntry, removeEntry, notify } = useApp();
   const [rowEditing, setRowEditing] = useState(false);
   const [draft, setDraft] = useState(entry.title);
   const [confirming, setConfirming] = useState(false);
+  /** Only the grip handle starts a drag, so text selection and the buttons keep working. */
+  const dragControls = useDragControls();
 
   if (!editing) {
-    return <li className="break-words rounded-xl bg-white/50 px-3.5 py-2.5 text-sm font-semibold leading-relaxed dark:bg-white/[0.04]">{entry.title}</li>;
+    return (
+      <Reorder.Item as="li" value={entry} dragListener={false} className="break-words rounded-xl bg-white/50 px-3.5 py-2.5 text-sm font-semibold leading-relaxed dark:bg-white/[0.04]">
+        {entry.title}
+      </Reorder.Item>
+    );
   }
 
   const saveTitle = async () => {
@@ -389,7 +439,7 @@ function ItemRow({ entry, bucketId, buckets, editing }: { entry: Entry; bucketId
 
   const move = async (value: string) => {
     try {
-      await updateEntry(entry.id, { group: value });
+      await updateEntry(entry.id, { group: value, order: null });
       notify(`Moved to ${buckets.find((b) => b.id === value)?.name ?? 'another bucket'}`);
     } catch (err) {
       notify((err as Error).message, 'error');
@@ -397,7 +447,14 @@ function ItemRow({ entry, bucketId, buckets, editing }: { entry: Entry; bucketId
   };
 
   return (
-    <li className="rounded-xl bg-white/50 p-3 dark:bg-white/[0.04]">
+    <Reorder.Item
+      as="li"
+      value={entry}
+      dragListener={false}
+      dragControls={dragControls}
+      onDragEnd={() => void onDrop()}
+      className="rounded-xl bg-white/50 p-3 dark:bg-white/[0.04]"
+    >
       {rowEditing ? (
         <div className="space-y-2">
           <textarea
@@ -450,6 +507,15 @@ function ItemRow({ entry, bucketId, buckets, editing }: { entry: Entry; bucketId
       ) : (
         <>
           <div className="flex items-start gap-2">
+            <button
+              type="button"
+              onPointerDown={(e) => dragControls.start(e)}
+              className="muted mt-0.5 shrink-0 cursor-grab touch-none rounded-lg p-1 transition hover:bg-ink-900/5 hover:text-ink-900 active:cursor-grabbing dark:hover:bg-white/5 dark:hover:text-leaf-50"
+              aria-label="Drag to reorder"
+              title="Drag to reorder"
+            >
+              <GripVertical className="h-4 w-4" />
+            </button>
             <div className="min-w-0 flex-1">
               <p className="break-words text-sm font-semibold leading-relaxed">{entry.title}</p>
             </div>
@@ -492,6 +558,6 @@ function ItemRow({ entry, bucketId, buckets, editing }: { entry: Entry; bucketId
           </label>
         </>
       )}
-    </li>
+    </Reorder.Item>
   );
 }

@@ -44,6 +44,8 @@ const toRecord = (e: Partial<NewEntry>): Partial<NewEntry> => ({
   ...(e.timestamp !== undefined && { timestamp: e.timestamp }),
   ...(e.source !== undefined && { source: e.source }),
   ...(e.group !== undefined && { group: e.group }),
+  ...(e.order !== undefined && { order: e.order }),
+  ...(e.ref !== undefined && { ref: e.ref }),
 });
 
 const withId = (e: NewEntry, id: string): Entry => ({
@@ -53,6 +55,7 @@ const withId = (e: NewEntry, id: string): Entry => ({
   timestamp: e.timestamp,
   source: e.source,
   group: e.group ?? null,
+  ...(e.ref && { ref: e.ref }),
 });
 
 /**
@@ -68,7 +71,9 @@ export function normaliseEntry(raw: Record<string, unknown>, id: string): Entry 
   if (!bucket || timestamp === null || !title) return null;
   const group = bucket === 'learning' && typeof raw.group === 'string' && raw.group ? raw.group : null;
   const source = raw.source === 'manual' ? 'manual' : 'voice';
-  return { id, bucket, title, timestamp, source, group };
+  const ref = typeof raw.ref === 'string' && raw.ref ? raw.ref : undefined;
+  const order = typeof raw.order === 'number' ? raw.order : undefined;
+  return { id, bucket, title, timestamp, source, group, ...(order !== undefined && { order }), ...(ref && { ref }) };
 }
 
 const normaliseAll = (rows: { raw: Record<string, unknown>; id: string }[]) =>

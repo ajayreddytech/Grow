@@ -38,6 +38,24 @@ const joinText = (...parts: string[]) =>
     .filter(Boolean)
     .join(' ');
 
+const words = (s: string) => s.split(/\s+/).filter(Boolean);
+const wordKey = (w: string) => w.toLowerCase().replace(/[^\p{L}\p{N}']/gu, '');
+
+/**
+ * Appends `next` to `base`, first dropping the opening words of `next` that `base` already ends with.
+ * A restarted recognition session re-sends words the transcript already has; without this they repeat.
+ */
+const appendTranscript = (base: string, next: string) => {
+  const b = words(base);
+  const n = words(next);
+  for (let k = Math.min(b.length, n.length, 60); k > 0; k--) {
+    let same = true;
+    for (let i = 0; i < k && same; i++) same = wordKey(b[b.length - k + i]) === wordKey(n[i]);
+    if (same) return joinText(base, n.slice(k).join(' '));
+  }
+  return joinText(base, next);
+};
+
 export interface VoiceResult {
   transcript: string;
 }
@@ -113,7 +131,7 @@ export function useVoiceCapture(onDone: (r: VoiceResult) => void) {
         }
         sessionFinal = final;
         sessionLive = live;
-        setInterim(joinText(committedRef.current, sessionFinal, sessionLive));
+        setInterim(appendTranscript(committedRef.current, joinText(sessionFinal, sessionLive)));
       };
       rec.onerror = (e) => {
         if (e.error === 'no-speech' || e.error === 'aborted') return;
@@ -124,7 +142,8 @@ export function useVoiceCapture(onDone: (r: VoiceResult) => void) {
         else setError(`Voice error: ${e.error}`);
       };
       rec.onend = () => {
-        committedRef.current = joinText(committedRef.current, sessionFinal, sessionLive);
+        // Only final text is kept: unfinished live text is re-recognised by the next session, so keeping it repeats it.
+        committedRef.current = appendTranscript(committedRef.current, sessionFinal);
         // The browser ended the session on its own (a pause, or a mobile timeout): keep listening.
         if (wantRef.current && !fatal && activeRef.current) {
           try {

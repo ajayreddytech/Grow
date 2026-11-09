@@ -6,6 +6,7 @@ export const BUCKET_STYLE: Record<Bucket, string> = {
   prabhupada: 'bg-amber-500/15 text-amber-800 dark:bg-amber-400/15 dark:text-amber-300',
   mentorship: 'bg-sky-500/10 text-sky-800 dark:bg-sky-400/15 dark:text-sky-300',
   workshop: 'bg-violet-500/10 text-violet-800 dark:bg-violet-400/15 dark:text-violet-300',
+  recall: 'bg-rose-500/10 text-rose-800 dark:bg-rose-400/15 dark:text-rose-300',
 };
 
 export function EmptyState({ icon, title, children }: { icon: React.ReactNode; title: string; children?: React.ReactNode }) {

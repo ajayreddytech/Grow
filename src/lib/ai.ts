@@ -112,8 +112,29 @@ const TOPIC_HINTS: [string, RegExp][] = [
 const groupNamed = (buckets: LearningBucket[], name: string) =>
   buckets.find((b) => b.name.trim().toLowerCase() === name.toLowerCase());
 
+/**
+ * The user's own bucket whose name the text mentions (every significant word of the name, in order of
+ * appearance does not matter). Lets custom buckets such as "Finance" or "Gardening" catch their learnings.
+ */
+function bucketNamed(text: string, buckets: LearningBucket[]): LearningBucket | undefined {
+  let best: LearningBucket | undefined;
+  let bestLen = 0;
+  for (const b of buckets) {
+    const parts = b.name.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length >= 2 && !['and', 'the', 'of'].includes(w));
+    if (!parts.length) continue;
+    const allFound = parts.every((w) => new RegExp(`\\b${escapeRe(w)}`, 'i').test(text));
+    if (allFound && b.name.length > bestLen) {
+      best = b;
+      bestLen = b.name.length;
+    }
+  }
+  return best;
+}
+
 /** The learning bucket a learning belongs in, by its subject. Falls back to the default bucket (Others). */
 export function filingFor(text: string, buckets: LearningBucket[]): string | null {
+  const named = bucketNamed(text, buckets);
+  if (named) return named.id;
   for (const [name, re] of TOPIC_HINTS) {
     if (!re.test(text)) continue;
     const match = groupNamed(buckets, name);
